@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kampanya Talepleri</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --ink:#1c231d;
+    --paper:#faf8f3;
+    --panel:#ffffff;
+    --line:#e2ddd0;
+    --green:#3f6b3f;
+    --green-deep:#2c4d2c;
+    --green-soft:#eaf1e6;
+    --amber:#c17f2b;
+    --amber-soft:#fbf0de;
+    --red:#a33d2f;
+    --red-soft:#fbeae7;
+    --muted:#7c7566;
+    --shadow: 0 1px 2px rgba(28,35,29,0.06), 0 4px 14px rgba(28,35,29,0.05);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    padding-bottom:60px;
+  }
+  .wrap{max-width:920px;margin:0 auto;padding:20px 16px 40px;}
+  .screen{display:none;}
+  .screen.active{display:block;}
+
+  /* ---- HOME / LOGIN CENTERED SCREENS ---- */
+  .center-screen{
+    min-height:78vh;display:none;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:40px 16px;
+  }
+  .center-screen.active{display:flex;}
+  .home-mark{
+    width:72px;height:72px;border-radius:18px;
+    background:linear-gradient(155deg,var(--green) 0%, var(--green-deep) 100%);
+    display:flex;align-items:center;justify-content:center;
+    color:#fff;font-weight:700;font-size:28px;font-family:Georgia,'Times New Roman',serif;
+    margin-bottom:22px;box-shadow:var(--shadow);
+  }
+  .region-eyebrow{font-size:12.5px;letter-spacing:0.14em;text-transform:uppercase;color:var(--amber);font-weight:800;margin-bottom:8px;}
+  .region-title{font-size:26px;font-weight:800;letter-spacing:-0.01em;margin:0 0 4px;color:var(--green-deep);}
+  .region-sub{font-size:15px;color:var(--muted);margin:0 0 36px;text-transform:uppercase;letter-spacing:0.08em;font-weight:700;}
+  .home-buttons{width:100%;max-width:340px;display:flex;flex-direction:column;gap:14px;}
+  .home-btn{
+    width:100%;padding:18px 20px;border-radius:14px;border:none;cursor:pointer;
+    font-family:inherit;font-weight:700;font-size:16px;text-align:left;
+    display:flex;align-items:center;justify-content:space-between;
+    box-shadow:var(--shadow);transition:transform .08s ease;
+  }
+  .home-btn:active{transform:scale(0.98);}
+  .home-btn .arrow{font-size:18px;opacity:0.6;}
+  .home-btn.store{background:var(--green);color:#fff;}
+  .home-btn.manager{background:var(--panel);color:var(--green-deep);border:1.5px solid var(--green);}
+  .home-btn small{display:block;font-weight:500;font-size:12px;margin-top:3px;opacity:0.85;}
+
+  .login-card{
+    width:100%;max-width:360px;background:var(--panel);border:1px solid var(--line);
+    border-radius:var(--radius);box-shadow:var(--shadow);padding:24px 22px;text-align:left;
+  }
+  .login-card h2{font-size:15px;margin:0 0 4px;color:var(--green-deep);font-weight:800;}
+  .login-card .login-sub{font-size:12.5px;color:var(--muted);margin-bottom:18px;}
+  .login-card label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:600;margin-top:12px;}
+  .login-card label:first-of-type{margin-top:0;}
+  .login-card input, .login-card select{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:9px;
+    font-size:14.5px;background:#fff;color:var(--ink);font-family:inherit;
+  }
+  .login-card input:focus, .login-card select:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft);}
+  .login-error{
+    font-size:12.5px;color:var(--red);background:var(--red-soft);border:1px solid #eec9c1;
+    border-radius:8px;padding:8px 10px;margin-top:12px;display:none;
+  }
+  .login-error.show{display:block;}
+
+  /* ---- SHARED HEADER for inner screens ---- */
+  header.top{display:flex;align-items:center;gap:12px;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--line);}
+  .back-btn{
+    width:36px;height:36px;border-radius:9px;border:1px solid var(--line);background:var(--panel);
+    color:var(--green-deep);font-size:18px;font-weight:700;display:flex;align-items:center;
+    justify-content:center;cursor:pointer;flex-shrink:0;
+  }
+  .brand{display:flex;align-items:center;gap:12px;flex:1;min-width:0;}
+  h1{font-size:18px;margin:0;letter-spacing:-0.01em;font-weight:700;}
+  .sub{font-size:12px;color:var(--muted);margin-top:2px;}
+  .stat-pill{
+    font-size:12px;color:var(--green-deep);background:var(--green-soft);border:1px solid #d6e6d1;
+    padding:5px 10px;border-radius:100px;font-weight:600;white-space:nowrap;flex-shrink:0;
+  }
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;margin-bottom:16px;}
+  .card h2{font-size:13px;text-transform:uppercase;letter-spacing:0.06em;color:var(--green-deep);margin:0 0 14px;font-weight:700;}
+  .card h2 .hint{text-transform:none;letter-spacing:0;color:var(--muted);font-weight:500;font-size:11.5px;}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .grid .full{grid-column:1/-1;}
+  label{display:block;font-size:11.5px;color:var(--muted);margin-bottom:5px;font-weight:600;}
+  input, select{
+    width:100%;padding:10px 11px;border:1px solid var(--line);border-radius:9px;
+    font-size:14.5px;background:#fff;color:var(--ink);font-family:inherit;
+  }
+  input:focus, select:focus{outline:none;border-color:var(--green);box-shadow:0 0 0 3px var(--green-soft);}
+  input:disabled{background:var(--green-soft);color:var(--green-deep);font-weight:700;}
+
+  .rate-preview{
+    grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
+    background:var(--amber-soft);border:1px solid #eddcb8;border-radius:9px;padding:10px 12px;font-size:13px;color:#7a5218;
+  }
+  .rate-preview b{font-size:17px;font-weight:800;}
+  .rate-preview.over-limit{background:var(--red-soft);border-color:#eec9c1;color:#7a2c1e;}
+  .warn-note{grid-column:1/-1;font-size:12px;color:var(--red);background:var(--red-soft);border:1px solid #eec9c1;border-radius:8px;padding:8px 10px;display:none;}
+  .warn-note.show{display:block;}
+
+  .btn{appearance:none;border:none;cursor:pointer;font-family:inherit;font-weight:700;font-size:14px;padding:11px 18px;border-radius:9px;transition:transform .08s ease, opacity .15s ease;}
+  .btn:active{transform:scale(0.98);}
+  .btn-primary{background:var(--green);color:#fff;width:100%;margin-top:12px;}
+  .btn-primary:hover{background:var(--green-deep);}
+  .btn-ghost{background:transparent;color:var(--muted);border:1px solid var(--line);}
+  .btn-danger{background:transparent;color:#a33d2f;font-size:12px;padding:5px 9px;}
+  .btn-export{background:var(--green-deep);color:#fff;}
+  .btn-small{padding:9px 14px;font-size:13px;}
+
+  .actions-row{display:flex;gap:10px;margin-top:2px;}
+  .actions-row .btn{flex:1;margin-top:0;}
+
+  .session-bar{
+    display:flex;align-items:center;justify-content:space-between;background:var(--green-soft);
+    border:1px solid #d6e6d1;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12.5px;color:var(--green-deep);
+  }
+  .session-bar b{font-size:13.5px;}
+  .logout-link{background:none;border:none;color:var(--red);font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;}
+
+  .entry{display:flex;align-items:center;justify-content:space-between;padding:10px 4px;border-bottom:1px solid var(--line);font-size:13.5px;gap:8px;}
+  .entry:last-child{border-bottom:none;}
+  .entry .meta{flex:1;min-width:0;}
+  .entry .store{font-weight:700;color:var(--green-deep);}
+  .entry .prod{color:var(--ink);}
+  .entry .num{color:var(--muted);font-size:12px;}
+  .entry .oran{font-weight:800;color:var(--amber);font-size:13.5px;flex-shrink:0;}
+  .empty-note{color:var(--muted);font-size:13px;padding:8px 4px;}
+
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px;}
+  .chip{
+    display:flex;align-items:center;gap:8px;background:var(--green-soft);border:1px solid #d6e6d1;
+    color:var(--green-deep);padding:7px 8px 7px 12px;border-radius:100px;font-size:13px;font-weight:600;
+  }
+  .chip button{background:none;border:none;color:var(--red);font-weight:800;cursor:pointer;font-size:13px;padding:2px 4px;font-family:inherit;}
+
+  .staff-row{display:flex;align-items:center;justify-content:space-between;padding:9px 4px;border-bottom:1px solid var(--line);font-size:13px;gap:8px;}
+  .staff-row:last-child{border-bottom:none;}
+  .staff-row .who{flex:1;min-width:0;}
+  .staff-row .who b{color:var(--green-deep);}
+  .staff-row .who .role-tag{display:inline-block;margin-left:6px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.04em;background:var(--amber-soft);color:#7a5218;padding:2px 7px;border-radius:100px;font-weight:700;}
+  .staff-row .who .sicil{color:var(--muted);font-size:12px;}
+
+  .group-label{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:0.05em;color:#fff;background:var(--amber);display:inline-block;padding:4px 10px;border-radius:6px;margin-bottom:10px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--muted);padding:6px 8px;border-bottom:2px solid var(--line);font-weight:700;}
+  td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr:last-child td{border-bottom:none;}
+  td.oran-cell{font-weight:800;color:var(--green-deep);}
+  .store-cell{font-weight:700;}
+  .multi-row td{background:var(--amber-soft);}
+  .multi-row td.store-cell{color:#7a5218;}
+  .store-group + .store-group{margin-top:16px;}
+  .store-group h3{font-size:13px;margin:0 0 6px;color:var(--green-deep);font-weight:700;padding-bottom:6px;border-bottom:1px solid var(--line);}
+
+  .footer-note{text-align:center;color:var(--muted);font-size:11.5px;margin-top:24px;}
+
+  @media (max-width:480px){
+    .grid{grid-template-columns:1fr;}
+    h1{font-size:16px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ================= HOME SCREEN ================= -->
+  <div class="screen center-screen" id="screen-home">
+    <div class="home-mark">EV</div>
+    <div class="region-eyebrow">Erkan VAN Bölgesi</div>
+    <h1 class="region-title">Kampanya Talebi</h1>
+    <p class="region-sub">Bölge kampanya talep sistemi</p>
+    <div class="home-buttons">
+      <button class="home-btn store" id="goStoreLoginBtn">
+        <span>Mağaza Girişi<small>Sicil no ile talep gir</small></span>
+        <span class="arrow">→</span>
+      </button>
+      <button class="home-btn manager" id="goManagerLoginBtn">
+        <span>Erkan VAN<small>Yönetici girişi</small></span>
+        <span class="arrow">→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= MAĞAZA LOGIN SCREEN ================= -->
+  <div class="screen center-screen" id="screen-store-login">
+    <div class="login-card">
+      <button class="back-btn" data-back style="margin-bottom:14px;">‹</button>
+      <h2>Mağaza Girişi</h2>
+      <div class="login-sub">Yetkiniz mağaza yöneticisi tarafından tanımlanmalıdır.</div>
+
+      <label for="loginMagaza">Mağaza</label>
+      <select id="loginMagaza"><option value="">Mağaza seçin</option></select>
+
+      <label for="loginRol">Yetki</label>
+      <select id="loginRol">
+        <option value="Mağaza Sorumlusu">Mağaza Sorumlusu</option>
+        <option value="Mağaza Sorumlusu Yardımcısı">Mağaza Sorumlusu Yardımcısı</option>
+      </select>
+
+      <label for="loginSicil">Sicil Numarası</label>
+      <input id="loginSicil" type="text" inputmode="numeric" placeholder="Örn. 10234">
+
+      <label for="loginSifre">Şifre</label>
+      <input id="loginSifre" type="password" placeholder="••••••">
+
+      <div class="login-error" id="storeLoginError">Sicil numarası, şifre, mağaza veya yetki eşleşmedi.</div>
+      <button class="btn btn-primary" id="storeLoginBtn">Giriş Yap</button>
+    </div>
+  </div>
+
+  <!-- ================= MAĞAZA GİRİŞİ (FORM) SCREEN ================= -->
+  <div class="screen" id="screen-store">
+    <header class="top">
+      <button class="back-btn" data-logout-store>‹</button>
+      <div class="brand">
+        <div>
+          <h1>Mağaza Girişi</h1>
+          <div class="sub">Erkan VAN Bölgesi · Kampanya Talebi</div>
+        </div>
+      </div>
+      <div class="stat-pill" id="entryCount">0 talep</div>
+    </header>
+
+    <div class="session-bar">
+      <span><b id="sessionStoreLabel">—</b> · <span id="sessionRoleLabel">—</span> · Sicil: <span id="sessionSicilLabel">—</span></span>
+      <button class="logout-link" data-logout-store>Çıkış Yap</button>
+    </div>
+
+    <div class="card">
+      <h2>Yeni Talep Ekle</h2>
+      <div class="grid">
+        <div class="full">
+          <label for="magaza">Mağaza Adı</label>
+          <input id="magaza" disabled>
+        </div>
+        <div>
+          <label for="kodu">Ürün Kodu</label>
+          <input id="kodu" placeholder="0101567">
+        </div>
+        <div>
+          <label for="adi">Ürün Adı</label>
+          <input id="adi" placeholder="Piliç bonfile">
+        </div>
+        <div>
+          <label for="adet">Adet</label>
+          <input id="adet" type="number" min="0" placeholder="24">
+        </div>
+        <div>
+          <label for="fiyat">Fiyat (₺)</label>
+          <input id="fiyat" type="number" min="0" step="0.01" placeholder="289">
+        </div>
+        <div>
+          <label for="kampFiyat">Kamp. Fiyat (₺) <span style="font-weight:400;color:var(--muted);">· en fazla %33</span></label>
+          <input id="kampFiyat" type="number" min="0" step="1" placeholder="199">
+        </div>
+        <div class="rate-preview full" id="ratePreviewBox">
+          <span>Otomatik oran</span>
+          <b id="livePreview">—</b>
+        </div>
+        <div class="warn-note full" id="warnNote">İndirim oranı %33'ü geçemez. Lütfen kampanya fiyatını yükseltin.</div>
+      </div>
+      <button class="btn btn-primary" id="addBtn">+ Talebi Ekle</button>
+    </div>
+
+    <div class="card" id="entriesCard">
+      <h2>Mağazamın Talepleri</h2>
+      <div id="entriesList"><div class="empty-note">Henüz talep eklenmedi.</div></div>
+    </div>
+  </div>
+
+  <!-- ================= YÖNETİCİ LOGIN SCREEN ================= -->
+  <div class="screen center-screen" id="screen-manager-login">
+    <div class="login-card">
+      <button class="back-btn" data-back style="margin-bottom:14px;">‹</button>
+      <h2>Erkan VAN · Yönetici Girişi</h2>
+      <div class="login-sub">Devam etmek için yönetici şifresini girin.</div>
+      <label for="managerPass">Şifre</label>
+      <input id="managerPass" type="password" placeholder="••••••••">
+      <div class="login-error" id="managerLoginError">Şifre hatalı.</div>
+      <button class="btn btn-primary" id="managerLoginBtn">Giriş Yap</button>
+    </div>
+  </div>
+
+  <!-- ================= ERKAN VAN (YÖNETİCİ) SCREEN ================= -->
+  <div class="screen" id="screen-manager">
+    <header class="top">
+      <button class="back-btn" data-logout-manager>‹</button>
+      <div class="brand">
+        <div>
+          <h1>Erkan VAN</h1>
+          <div class="sub">Bölge Kampanya Talep Raporu</div>
+        </div>
+      </div>
+      <div class="stat-pill" id="entryCountMgr">0 talep</div>
+    </header>
+
+    <div class="card">
+      <h2>Mağaza Yönetimi <span class="hint">— ekle / sil, mağaza girişi menüsünde görünür</span></h2>
+      <div class="grid">
+        <div class="full">
+          <label for="newStoreName">Yeni Mağaza Adı</label>
+          <input id="newStoreName" placeholder="Örn. Kalenderhane">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-small" id="addStoreBtn" style="width:auto;margin-top:10px;">+ Mağaza Ekle</button>
+      <div class="chip-row" id="storeChips" style="margin-top:14px;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Yetkili Yönetimi <span class="hint">— Mağaza Sorumlusu / Yardımcısı ekle</span></h2>
+      <div class="grid">
+        <div>
+          <label for="staffMagaza">Mağaza</label>
+          <select id="staffMagaza"><option value="">Mağaza seçin</option></select>
+        </div>
+        <div>
+          <label for="staffRol">Yetki</label>
+          <select id="staffRol">
+            <option value="Mağaza Sorumlusu">Mağaza Sorumlusu</option>
+            <option value="Mağaza Sorumlusu Yardımcısı">Mağaza Sorumlusu Yardımcısı</option>
+          </select>
+        </div>
+        <div>
+          <label for="staffSicil">Sicil Numarası</label>
+          <input id="staffSicil" type="text" inputmode="numeric" placeholder="10234">
+        </div>
+        <div>
+          <label for="staffSifre">Şifre</label>
+          <input id="staffSifre" type="text" placeholder="Şifre belirleyin">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-small" id="addStaffBtn" style="width:auto;margin-top:10px;">+ Yetkili Ekle</button>
+      <div id="staffList" style="margin-top:14px;"><div class="empty-note">Henüz yetkili eklenmedi.</div></div>
+    </div>
+
+    <div class="card">
+      <h2>Rapor</h2>
+      <div id="report"><div class="empty-note">Talep ekledikçe rapor burada oluşacak.</div></div>
+      <div class="actions-row">
+        <button class="btn btn-export" id="exportBtn">⬇ Excel Olarak İndir</button>
+        <button class="btn btn-ghost" id="clearBtn">Tümünü Temizle</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-note">Veriler bu cihazda otomatik olarak saklanır.</div>
+</div>
+
+<script>
+let entries = [];
+let stores = [];
+let staff = [];
+const ENTRIES_KEY = 'kampanya-talepleri-entries';
+const STORES_KEY = 'kampanya-magazalar';
+const STAFF_KEY = 'kampanya-yetkililer';
+const MAX_ORAN = 33;
+const ADMIN_PASSWORD = '19051905';
+
+let storeSession = null;   // { magaza, rol, sicilNo }
+let managerAuthed = false;
+
+/* ---------- Navigation ---------- */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+document.getElementById('goStoreLoginBtn').addEventListener('click', ()=>{
+  document.getElementById('storeLoginError').classList.remove('show');
+  populateLoginStoreSelect();
+  showScreen('screen-store-login');
+});
+document.getElementById('goManagerLoginBtn').addEventListener('click', ()=>{
+  document.getElementById('managerLoginError').classList.remove('show');
+  document.getElementById('managerPass').value='';
+  showScreen('screen-manager-login');
+});
+document.querySelectorAll('[data-back]').forEach(b=>b.addEventListener('click', ()=>showScreen('screen-home')));
+document.querySelectorAll('[data-logout-store]').forEach(b=>b.addEventListener('click', ()=>{
+  storeSession = null;
+  showScreen('screen-home');
+}));
+document.querySelectorAll('[data-logout-manager]').forEach(b=>b.addEventListener('click', ()=>{
+  managerAuthed = false;
+  showScreen('screen-home');
+}));
+
+/* ---------- Storage ---------- */
+async function loadAll(){
+  try{
+    const [e,s,st] = await Promise.all([
+      window.storage.get(ENTRIES_KEY, true).catch(()=>null),
+      window.storage.get(STORES_KEY, true).catch(()=>null),
+      window.storage.get(STAFF_KEY, true).catch(()=>null),
+    ]);
+    entries = (e && e.value) ? JSON.parse(e.value) : [];
+    stores = (s && s.value) ? JSON.parse(s.value) : [];
+    staff = (st && st.value) ? JSON.parse(st.value) : [];
+  }catch(err){ entries=[]; stores=[]; staff=[]; }
+  renderStoreChips();
+  renderStaffMgmtSelect();
+  renderStaffList();
+  render();
+}
+async function saveEntries(){ try{ await window.storage.set(ENTRIES_KEY, JSON.stringify(entries), true); }catch(e){} }
+async function saveStores(){ try{ await window.storage.set(STORES_KEY, JSON.stringify(stores), true); }catch(e){} }
+async function saveStaff(){ try{ await window.storage.set(STAFF_KEY, JSON.stringify(staff), true); }catch(e){} }
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function fmtTL(n){ return new Intl.NumberFormat('tr-TR', {maximumFractionDigits:2}).format(n); }
+
+/* ---------- Manager login ---------- */
+document.getElementById('managerLoginBtn').addEventListener('click', ()=>{
+  const pass = document.getElementById('managerPass').value;
+  if(pass === ADMIN_PASSWORD){
+    managerAuthed = true;
+    document.getElementById('managerLoginError').classList.remove('show');
+    renderStoreChips();
+    renderStaffMgmtSelect();
+    renderStaffList();
+    renderReport();
+    showScreen('screen-manager');
+  } else {
+    document.getElementById('managerLoginError').classList.add('show');
+  }
+});
+
+/* ---------- Store management (admin) ---------- */
+function renderStoreChips(){
+  const el = document.getElementById('storeChips');
+  if(!el) return;
+  if(stores.length===0){
+    el.innerHTML = '<div class="empty-note">Henüz mağaza eklenmedi.</div>';
+    return;
+  }
+  el.innerHTML = stores.map(s=>`
+    <span class="chip">${escapeHtml(s)}<button onclick="removeStore('${escapeHtml(s).replace(/'/g,"\\'")}')">✕</button></span>
+  `).join('');
+}
+document.getElementById('addStoreBtn').addEventListener('click', async ()=>{
+  const input = document.getElementById('newStoreName');
+  const name = input.value.trim();
+  if(!name) return;
+  if(stores.includes(name)){ alert('Bu mağaza zaten ekli.'); return; }
+  stores.push(name);
+  input.value = '';
+  await saveStores();
+  renderStoreChips();
+  renderStaffMgmtSelect();
+  populateLoginStoreSelect();
+});
+async function removeStore(name){
+  const hasStaff = staff.some(s=>s.magaza===name);
+  if(hasStaff && !confirm(`"${name}" mağazasına atanmış yetkililer var. Yine de silinsin mi? (Yetkililer de silinecek)`)) return;
+  stores = stores.filter(s=>s!==name);
+  staff = staff.filter(s=>s.magaza!==name);
+  await saveStores();
+  await saveStaff();
+  renderStoreChips();
+  renderStaffMgmtSelect();
+  renderStaffList();
+  populateLoginStoreSelect();
+}
+
+/* ---------- Staff management (admin) ---------- */
+function renderStaffMgmtSelect(){
+  const sel = document.getElementById('staffMagaza');
+  if(!sel) return;
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Mağaza seçin</option>' + stores.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  if(stores.includes(current)) sel.value = current;
+}
+document.getElementById('addStaffBtn').addEventListener('click', async ()=>{
+  const magaza = document.getElementById('staffMagaza').value;
+  const rol = document.getElementById('staffRol').value;
+  const sicilNo = document.getElementById('staffSicil').value.trim();
+  const sifre = document.getElementById('staffSifre').value;
+  if(!magaza || !rol || !sicilNo || !sifre){
+    alert('Lütfen mağaza, yetki, sicil numarası ve şifre girin.');
+    return;
+  }
+  const dup = staff.some(s=>s.sicilNo===sicilNo && s.magaza===magaza && s.rol===rol);
+  if(dup){ alert('Bu mağaza ve yetki için bu sicil numarası zaten kayıtlı.'); return; }
+  staff.push({ id: Date.now()+Math.random(), magaza, rol, sicilNo, sifre });
+  document.getElementById('staffSicil').value='';
+  document.getElementById('staffSifre').value='';
+  await saveStaff();
+  renderStaffList();
+});
+function renderStaffList(){
+  const el = document.getElementById('staffList');
+  if(!el) return;
+  if(staff.length===0){
+    el.innerHTML = '<div class="empty-note">Henüz yetkili eklenmedi.</div>';
+    return;
+  }
+  el.innerHTML = staff.map(s=>`
+    <div class="staff-row">
+      <div class="who"><b>${escapeHtml(s.magaza)}</b><span class="role-tag">${escapeHtml(s.rol)}</span><br><span class="sicil">Sicil: ${escapeHtml(s.sicilNo)}</span></div>
+      <button class="btn btn-danger" onclick="removeStaff(${s.id})">Sil</button>
+    </div>
+  `).join('');
+}
+async function removeStaff(id){
+  staff = staff.filter(s=>s.id!==id);
+  await saveStaff();
+  renderStaffList();
+}
+
+/* ---------- Store login ---------- */
+function populateLoginStoreSelect(){
+  const sel = document.getElementById('loginMagaza');
+  sel.innerHTML = '<option value="">Mağaza seçin</option>' + stores.map(s=>`<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+}
+document.getElementById('storeLoginBtn').addEventListener('click', ()=>{
+  const magaza = document.getElementById('loginMagaza').value;
+  const rol = document.getElementById('loginRol').value;
+  const sicilNo = document.getElementById('loginSicil').value.trim();
+  const sifre = document.getElementById('loginSifre').value;
+  const errEl = document.getElementById('storeLoginError');
+
+  if(!magaza || !sicilNo || !sifre){
+    errEl.textContent = 'Lütfen mağaza, sicil numarası ve şifreyi girin.';
+    errEl.classList.add('show');
+    return;
+  }
+  const match = staff.find(s=>s.magaza===magaza && s.rol===rol && s.sicilNo===sicilNo && s.sifre===sifre);
+  if(!match){
+    errEl.textContent = 'Sicil numarası, şifre, mağaza veya yetki eşleşmedi.';
+    errEl.classList.add('show');
+    return;
+  }
+  errEl.classList.remove('show');
+  storeSession = { magaza, rol, sicilNo };
+  document.getElementById('loginSicil').value='';
+  document.getElementById('loginSifre').value='';
+  enterStoreScreen();
+});
+
+function enterStoreScreen(){
+  document.getElementById('magaza').value = storeSession.magaza;
+  document.getElementById('sessionStoreLabel').textContent = storeSession.magaza;
+  document.getElementById('sessionRoleLabel').textContent = storeSession.rol;
+  document.getElementById('sessionSicilLabel').textContent = storeSession.sicilNo;
+  render();
+  showScreen('screen-store');
+}
+
+/* ---------- Calculation helpers ---------- */
+function calcOran(fiyat, kamp){
+  const f = parseFloat(fiyat), k = parseFloat(kamp);
+  if(!f || f<=0 || isNaN(k)) return null;
+  return Math.round(((f-k)/f)*100);
+}
+function autoKampFiyat(fiyat){
+  const f = parseFloat(fiyat);
+  if(!f || f<=0) return null;
+  const raw = f * (1 - MAX_ORAN/100);
+  return Math.ceil(raw / 5) * 5;
+}
+
+/* ---------- Entry form logic ---------- */
+let lastAutoKamp = null;
+function applyAutoKamp(){
+  const fiyat = document.getElementById('fiyat').value;
+  const kampInput = document.getElementById('kampFiyat');
+  const auto = autoKampFiyat(fiyat);
+  if(auto===null) return;
+  const current = kampInput.value;
+  if(current === '' || parseFloat(current) === lastAutoKamp){ kampInput.value = auto; }
+  lastAutoKamp = auto;
+}
+function updateLivePreview(){
+  const f = document.getElementById('fiyat').value;
+  const k = document.getElementById('kampFiyat').value;
+  const o = calcOran(f,k);
+  const box = document.getElementById('ratePreviewBox');
+  const warn = document.getElementById('warnNote');
+  document.getElementById('livePreview').textContent = (o===null) ? '—' : (o + '%');
+  if(o!==null && o>MAX_ORAN){ box.classList.add('over-limit'); warn.classList.add('show'); }
+  else { box.classList.remove('over-limit'); warn.classList.remove('show'); }
+}
+document.getElementById('fiyat').addEventListener('input', ()=>{ applyAutoKamp(); updateLivePreview(); });
+document.getElementById('kampFiyat').addEventListener('input', ()=>{
+  const val = parseFloat(document.getElementById('kampFiyat').value);
+  if(val !== lastAutoKamp) lastAutoKamp = null;
+  updateLivePreview();
+});
+
+document.getElementById('addBtn').addEventListener('click', async ()=>{
+  if(!storeSession){ alert('Oturum bulunamadı, lütfen tekrar giriş yapın.'); showScreen('screen-home'); return; }
+  const magaza = storeSession.magaza;
+  const kodu = document.getElementById('kodu').value.trim();
+  const adi = document.getElementById('adi').value.trim();
+  const adet = document.getElementById('adet').value;
+  const fiyat = document.getElementById('fiyat').value;
+  const kampFiyat = document.getElementById('kampFiyat').value;
+
+  if(!kodu || !adi || !fiyat || !kampFiyat){
+    alert('Lütfen ürün kodu, ürün adı, fiyat ve kampanya fiyatını girin.');
+    return;
+  }
+  const oran = calcOran(fiyat, kampFiyat);
+  if(oran!==null && oran>MAX_ORAN){
+    alert('İndirim oranı %33\'ü geçemez. Lütfen kampanya fiyatını yükseltin.');
+    return;
+  }
+  entries.push({
+    id: Date.now()+Math.random(),
+    magaza, kodu, adi,
+    adet: adet? parseFloat(adet): 0,
+    fiyat: parseFloat(fiyat),
+    kampFiyat: parseFloat(kampFiyat),
+    oran,
+    girenSicil: storeSession.sicilNo,
+    girenRol: storeSession.rol
+  });
+
+  ['kodu','adi','adet','fiyat','kampFiyat'].forEach(id=>document.getElementById(id).value='');
+  lastAutoKamp = null;
+  updateLivePreview();
+  await saveEntries();
+  render();
+});
+
+document.getElementById('clearBtn').addEventListener('click', async ()=>{
+  if(entries.length===0) return;
+  if(!confirm('Tüm talepler silinsin mi?')) return;
+  entries = [];
+  await saveEntries();
+  render();
+});
+async function removeEntry(id){
+  entries = entries.filter(e=>e.id!==id);
+  await saveEntries();
+  render();
+}
+
+/* ---------- Grouping ---------- */
+function buildGroups(){
+  const byKodu = {};
+  entries.forEach(e=>{ if(!byKodu[e.kodu]) byKodu[e.kodu]=[]; byKodu[e.kodu].push(e); });
+  const multi = [];
+  const singleByStore = {};
+  Object.values(byKodu).forEach(list=>{
+    const distinctStores = [...new Set(list.map(x=>x.magaza))];
+    if(distinctStores.length > 1){
+      const totalAdet = list.reduce((s,x)=>s+(x.adet||0),0);
+      const first = list[0];
+      multi.push({ magaza: distinctStores.join(', '), kodu:first.kodu, adi:first.adi, adet:totalAdet, fiyat:first.fiyat, kampFiyat:first.kampFiyat, oran:first.oran });
+    } else {
+      const store = distinctStores[0];
+      if(!singleByStore[store]) singleByStore[store] = [];
+      singleByStore[store].push(...list);
+    }
+  });
+  return {multi, singleByStore};
+}
+
+/* ---------- Rendering ---------- */
+function render(){
+  const countLabel = entries.length + (entries.length===1?' talep':' talep');
+  document.getElementById('entryCountMgr').textContent = countLabel;
+
+  if(storeSession){
+    const mine = entries.filter(e=>e.magaza===storeSession.magaza);
+    document.getElementById('entryCount').textContent = mine.length + (mine.length===1?' talep':' talep');
+    const listEl = document.getElementById('entriesList');
+    if(mine.length===0){
+      listEl.innerHTML = '<div class="empty-note">Henüz talep eklenmedi.</div>';
+    } else {
+      listEl.innerHTML = mine.slice().reverse().map(e=>`
+        <div class="entry">
+          <div class="meta">
+            <div><span class="store">${escapeHtml(e.adi)}</span></div>
+            <div class="num">${escapeHtml(e.kodu)} · ${e.adet} adet · ${fmtTL(e.fiyat)}₺ → ${fmtTL(e.kampFiyat)}₺</div>
+          </div>
+          <div class="oran">${e.oran===null?'—':e.oran+'%'}</div>
+          <button class="btn btn-danger" onclick="removeEntry(${e.id})">Sil</button>
+        </div>
+      `).join('');
+    }
+  }
+  renderReport();
+}
+
+function renderReport(){
+  const reportEl = document.getElementById('report');
+  if(!reportEl) return;
+  if(entries.length===0){
+    reportEl.innerHTML = '<div class="empty-note">Talep ekledikçe rapor burada oluşacak.</div>';
+    return;
+  }
+  const {multi, singleByStore} = buildGroups();
+  let html = '';
+  if(multi.length>0){
+    html += `<div class="group-label">Aynı Ürüne Birden Fazla Mağaza Talebi</div>`;
+    html += `<table style="margin-bottom:18px;"><thead><tr><th>Mağaza</th><th>Kod</th><th>Ürün</th><th>Adet</th><th>Fiyat</th><th>Kamp. Fiyat</th><th>Oran</th></tr></thead><tbody>`;
+    multi.forEach(r=>{
+      html += `<tr class="multi-row">
+        <td class="store-cell">${escapeHtml(r.magaza)}</td><td>${escapeHtml(r.kodu)}</td><td>${escapeHtml(r.adi)}</td>
+        <td>${r.adet}</td><td>${fmtTL(r.fiyat)}₺</td><td>${fmtTL(r.kampFiyat)}₺</td>
+        <td class="oran-cell">${r.oran===null?'—':r.oran+'%'}</td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  const storeNames = Object.keys(singleByStore);
+  if(storeNames.length>0){
+    storeNames.forEach(store=>{
+      html += `<div class="store-group"><h3>${escapeHtml(store)}</h3>`;
+      html += `<table><thead><tr><th>Kod</th><th>Ürün</th><th>Adet</th><th>Fiyat</th><th>Kamp. Fiyat</th><th>Oran</th></tr></thead><tbody>`;
+      singleByStore[store].forEach(r=>{
+        html += `<tr><td>${escapeHtml(r.kodu)}</td><td>${escapeHtml(r.adi)}</td><td>${r.adet}</td>
+          <td>${fmtTL(r.fiyat)}₺</td><td>${fmtTL(r.kampFiyat)}₺</td>
+          <td class="oran-cell">${r.oran===null?'—':r.oran+'%'}</td></tr>`;
+      });
+      html += `</tbody></table></div>`;
+    });
+  }
+  reportEl.innerHTML = html;
+}
+
+/* ---------- Export ---------- */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  if(entries.length===0){ alert('İndirilecek talep bulunmuyor.'); return; }
+  const {multi, singleByStore} = buildGroups();
+  const rows = [];
+  rows.push(['Mağaza Adı','Ürün Kodu','Ürün Adı','Adet','Fiyat','Kamp. Fiyat','Oran']);
+  if(multi.length>0){
+    rows.push(['AYNI ÜRÜNE BİRDEN FAZLA MAĞAZA TALEBİ']);
+    multi.forEach(r=>{ rows.push([r.magaza, r.kodu, r.adi, r.adet, r.fiyat, r.kampFiyat, (r.oran===null?'':r.oran+'%')]); });
+    rows.push([]); rows.push([]);
+  }
+  Object.keys(singleByStore).forEach(store=>{
+    const list = singleByStore[store];
+    list.forEach((r,i)=>{ rows.push([i===0? store: '', r.kodu, r.adi, r.adet, r.fiyat, r.kampFiyat, (r.oran===null?'':r.oran+'%')]); });
+    rows.push([]); rows.push([]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:28},{wch:12},{wch:24},{wch:8},{wch:10},{wch:12},{wch:8}];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Talepler');
+  const ts = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `Kampanya_Talepleri_${ts}.xlsx`);
+});
+
+/* ---------- Init ---------- */
+showScreen('screen-home');
+loadAll();
+</script>
+</body>
+</html>
